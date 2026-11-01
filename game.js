@@ -5,207 +5,99 @@ import { createCoin } from "./coin.js";
 import { PhysicsWorld } from "./physik.js";
 import { applyLighting } from "./licht.js";
 
+// ================================================
+// ONE MILLION COINS
+// GAME.JS
+// ================================================
+
 let scene;
 let camera;
 let renderer;
 let physics;
-let playing = false;
+
+let coins = [];
+let clock;
+
+let gameStarted = false;
+let animationFrame = null;
+
+let keys = {};
+
 let yaw = 0;
 let pitch = 0;
 
-const keys = {};
-
-const WIDTH = 90;
-const DEPTH = 90;
-const FLOOR_HEIGHT = 9;
 const FLOOR_COUNT = 10;
-const SPAWN_Y = (FLOOR_COUNT - 1) * FLOOR_HEIGHT + 1.7;
+const FLOOR_HEIGHT = 9;
 
-const PLAYER_SPEED = 9;
+const ROOM_WIDTH = 36;
+const ROOM_DEPTH = 36;
+const WALL_HEIGHT = 8;
+
+const COINS_PER_FLOOR = 35;
+
+const PLAYER_HEIGHT = 1.75;
+const PLAYER_SPEED = 7;
+
+let playerPosition = new THREE.Vector3(
+    0,
+    FLOOR_HEIGHT * (FLOOR_COUNT - 1) + PLAYER_HEIGHT,
+    0
+);
+
+// ================================================
+// INITIALISIERUNG
+// ================================================
 
 export async function initGame() {
 
-    // SZENE
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x777777);
-    scene.fog = new THREE.Fog(0x777777, 40, 190);
 
-    // KAMERA
+    applyLighting(THREE, scene);
+
     camera = new THREE.PerspectiveCamera(
         75,
-        innerWidth / innerHeight,
+        window.innerWidth / window.innerHeight,
         0.1,
-        300
+        500
     );
 
-    camera.position.set(0, SPAWN_Y, 25);
-    camera.rotation.order = "YXZ";
+    camera.position.copy(playerPosition);
 
-    // LICHT
-    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-
-    const sun = new THREE.DirectionalLight(0xffffff, 2);
-    sun.position.set(-30, 100, 40);
-    scene.add(sun);
-
-    applyLighting(scene);
-
-    // RENDERER
     renderer = new THREE.WebGLRenderer({
         antialias: true,
         powerPreference: "high-performance"
     });
 
-    renderer.setSize(innerWidth, innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+
+    renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio, 2)
+    );
+
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     document.body.appendChild(renderer.domElement);
 
-    // PHYSIK
-    physics = new PhysicsWorld(THREE, {
-        gravity: -9.81,
-        iterations: 8,
-        substeps: 3,
-        groundY: -1000
-    });
+    renderer.domElement.style.position = "fixed";
+    renderer.domElement.style.inset = "0";
+    renderer.domElement.style.zIndex = "0";
 
-    // BETON
-    const textureCanvas = document.createElement("canvas");
-    textureCanvas.width = 512;
-    textureCanvas.height = 512;
+    clock = new THREE.Clock();
 
-    const ctx = textureCanvas.getContext("2d");
-    ctx.fillStyle = "#777777";
-    ctx.fillRect(0, 0, 512, 512);
+    createBunker();
+    createCoins();
+    createPhysics();
 
-    for (let i = 0; i < 14000; i++) {
-        const shade = 70 + Math.random() * 80;
-        ctx.fillStyle = `rgba(${shade},${shade},${shade},0.18)`;
-        ctx.fillRect(
-            Math.random() * 512,
-            Math.random() * 512,
-            Math.random() * 3 + 1,
-            Math.random() * 3 + 1
-        );
-    }
+    window.addEventListener("resize", onResize);
 
-    const concreteTexture = new THREE.CanvasTexture(textureCanvas);
-    concreteTexture.wrapS = THREE.RepeatWrapping;
-    concreteTexture.wrapT = THREE.RepeatWrapping;
-    concreteTexture.repeat.set(8, 8);
-
-    const concrete = new THREE.MeshStandardMaterial({
-        map: concreteTexture,
-        color: 0x999999,
-        roughness: 0.95
-    });
-
-    const floorMaterial = new THREE.MeshStandardMaterial({
-        map: concreteTexture,
-        color: 0x777777,
-        roughness: 0.98
-    });
-
-    // BUNKER
-    const bunker = new THREE.Group();
-    scene.add(bunker);
-
-    function addWall(x, y, z, sx, sy, sz, material = concrete) {
-        const mesh = new THREE.Mesh(
-            new THREE.BoxGeometry(sx, sy, sz),
-            material
-        );
-
-        mesh.position.set(x, y, z);
-        mesh.receiveShadow = true;
-        mesh.castShadow = true;
-        bunker.add(mesh);
-    }
-
-    for (let floor = 0; floor < FLOOR_COUNT; floor++) {
-
-        const y = floor * FLOOR_HEIGHT;
-
-        // Boden
-        addWall(0, y - 0.5, 0, WIDTH, 1, DEPTH, floorMaterial);
-
-        // Decke
-        if (floor < FLOOR_COUNT - 1) {
-            addWall(
-                0,
-                y + FLOOR_HEIGHT - 0.5,
-                0,
-                WIDTH,
-                1,
-                DEPTH
-            );
-        }
-
-        // Außenwände
-        addWall(0, y + FLOOR_HEIGHT / 2, -DEPTH / 2, WIDTH, FLOOR_HEIGHT, 2);
-        addWall(0, y + FLOOR_HEIGHT / 2, DEPTH / 2, WIDTH, FLOOR_HEIGHT, 2);
-        addWall(-WIDTH / 2, y + FLOOR_HEIGHT / 2, 0, 2, FLOOR_HEIGHT, DEPTH);
-        addWall(WIDTH / 2, y + FLOOR_HEIGHT / 2, 0, 2, FLOOR_HEIGHT, DEPTH);
-
-        // Betonstützen
-        for (const x of [-40, 40]) {
-            for (const z of [-40, 40]) {
-                addWall(x, y + FLOOR_HEIGHT / 2, z, 2, FLOOR_HEIGHT, 2);
-            }
-        }
-    }
-
-    // MÜNZEN
-    for (let floor = 0; floor < FLOOR_COUNT; floor++) {
-
-        const floorY = floor * FLOOR_HEIGHT;
-
-        for (let i = 0; i < 35; i++) {
-
-            const coin = createCoin(THREE);
-
-            coin.position.set(
-                THREE.MathUtils.randFloat(-35, 35),
-                floorY + 1.2 + Math.random() * 4,
-                THREE.MathUtils.randFloat(-35, 35)
-            );
-
-            coin.rotation.set(
-                Math.random() * 0.2,
-                Math.random() * Math.PI * 2,
-                Math.random() * 0.2
-            );
-
-            coin.scale.setScalar(
-                THREE.MathUtils.randFloat(0.65, 1)
-            );
-
-            scene.add(coin);
-
-            const body = physics.add(coin, {
-                mass: 0.2,
-                radius: 0.5 * coin.scale.x,
-                restitution: 0.3,
-                friction: 0.6
-            });
-
-            physics.applyImpulse(
-                body,
-                new THREE.Vector3(
-                    THREE.MathUtils.randFloat(-0.4, 0.4),
-                    THREE.MathUtils.randFloat(-0.2, 0.5),
-                    THREE.MathUtils.randFloat(-0.4, 0.4)
-                )
-            );
-        }
-    }
-
-    // STEUERUNG
     window.addEventListener("keydown", event => {
         keys[event.code] = true;
 
-        if (event.code === "Escape" && playing) {
+        if (event.code === "Escape" && gameStarted) {
             document.exitPointerLock();
         }
     });
@@ -214,93 +106,491 @@ export async function initGame() {
         keys[event.code] = false;
     });
 
-    document.addEventListener("pointerlockchange", () => {
-        playing = document.pointerLockElement === renderer.domElement;
+    document.addEventListener(
+        "pointerlockchange",
+        onPointerLockChange
+    );
 
-        document.getElementById("menu").style.display =
-            playing ? "none" : "flex";
-    });
-
-    document.addEventListener("mousemove", event => {
-        if (!playing) return;
-
-        yaw -= event.movementX * 0.002;
-        pitch -= event.movementY * 0.002;
-
-        pitch = THREE.MathUtils.clamp(
-            pitch,
-            -Math.PI / 2 + 0.01,
-            Math.PI / 2 - 0.01
-        );
-
-        camera.rotation.y = yaw;
-        camera.rotation.x = pitch;
-    });
-
-    // ANIMATION
-    const clock = new THREE.Clock();
-
-    function animate() {
-        requestAnimationFrame(animate);
-
-        const dt = Math.min(clock.getDelta(), 0.033);
-
-        updatePlayer(dt);
-        physics.update(dt);
-
-        renderer.render(scene, camera);
-    }
+    document.addEventListener(
+        "mousemove",
+        onMouseMove
+    );
 
     animate();
+}
 
-    // FENSTERGRÖSSE
-    window.addEventListener("resize", () => {
-        camera.aspect = innerWidth / innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(innerWidth, innerHeight);
+// ================================================
+// BUNKER
+// ================================================
+
+function createBunker() {
+
+    const concrete = new THREE.MeshBasicMaterial({
+        color: 0x777777
     });
+
+    const darkConcrete = new THREE.MeshBasicMaterial({
+        color: 0x484848
+    });
+
+    const floorMaterial = new THREE.MeshBasicMaterial({
+        color: 0x656565
+    });
+
+    const wallGeometry = new THREE.BoxGeometry(
+        ROOM_WIDTH,
+        WALL_HEIGHT,
+        0.5
+    );
+
+    const sideGeometry = new THREE.BoxGeometry(
+        0.5,
+        WALL_HEIGHT,
+        ROOM_DEPTH
+    );
+
+    for (let floor = 0; floor < FLOOR_COUNT; floor++) {
+
+        const y = floor * FLOOR_HEIGHT;
+
+        // Bodenplatte
+        const floorMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(
+                ROOM_WIDTH,
+                0.6,
+                ROOM_DEPTH
+            ),
+            floorMaterial
+        );
+
+        floorMesh.position.set(
+            0,
+            y,
+            0
+        );
+
+        floorMesh.receiveShadow = true;
+        scene.add(floorMesh);
+
+        // Decke außer auf der obersten Etage
+        if (floor < FLOOR_COUNT - 1) {
+
+            const ceiling = new THREE.Mesh(
+                new THREE.BoxGeometry(
+                    ROOM_WIDTH,
+                    0.5,
+                    ROOM_DEPTH
+                ),
+                darkConcrete
+            );
+
+            ceiling.position.set(
+                0,
+                y + WALL_HEIGHT,
+                0
+            );
+
+            scene.add(ceiling);
+        }
+
+        // Wände
+        const north = new THREE.Mesh(
+            wallGeometry,
+            concrete
+        );
+
+        north.position.set(
+            0,
+            y + WALL_HEIGHT / 2,
+            -ROOM_DEPTH / 2
+        );
+
+        const south = new THREE.Mesh(
+            wallGeometry,
+            concrete
+        );
+
+        south.position.set(
+            0,
+            y + WALL_HEIGHT / 2,
+            ROOM_DEPTH / 2
+        );
+
+        const east = new THREE.Mesh(
+            sideGeometry,
+            concrete
+        );
+
+        east.position.set(
+            ROOM_WIDTH / 2,
+            y + WALL_HEIGHT / 2,
+            0
+        );
+
+        const west = new THREE.Mesh(
+            sideGeometry,
+            concrete
+        );
+
+        west.position.set(
+            -ROOM_WIDTH / 2,
+            y + WALL_HEIGHT / 2,
+            0
+        );
+
+        scene.add(north, south, east, west);
+
+        // Betonstützen
+        const pillarGeometry = new THREE.BoxGeometry(
+            0.8,
+            WALL_HEIGHT,
+            0.8
+        );
+
+        for (const x of [-15, 15]) {
+            for (const z of [-15, 15]) {
+
+                const pillar = new THREE.Mesh(
+                    pillarGeometry,
+                    darkConcrete
+                );
+
+                pillar.position.set(
+                    x,
+                    y + WALL_HEIGHT / 2,
+                    z
+                );
+
+                scene.add(pillar);
+            }
+        }
+    }
 }
 
-// STARTBUTTON
+// ================================================
+// MÜNZEN
+// ================================================
+
+function createCoins() {
+
+    const coinPositions = [];
+
+    for (let floor = 0; floor < FLOOR_COUNT; floor++) {
+
+        const floorY = floor * FLOOR_HEIGHT + 0.7;
+
+        for (let i = 0; i < COINS_PER_FLOOR; i++) {
+
+            const x = (Math.random() - 0.5) * 28;
+            const z = (Math.random() - 0.5) * 28;
+
+            coinPositions.push({
+                x,
+                y: floorY + Math.random() * 3,
+                z
+            });
+        }
+    }
+
+    for (const position of coinPositions) {
+
+        const coin = createCoin(THREE);
+
+        coin.position.set(
+            position.x,
+            position.y,
+            position.z
+        );
+
+        coin.rotation.set(
+            Math.random() * Math.PI,
+            Math.random() * Math.PI,
+            Math.random() * Math.PI
+        );
+
+        coin.scale.setScalar(0.65);
+
+        scene.add(coin);
+
+        coins.push(coin);
+    }
+}
+
+// ================================================
+// PHYSIK
+// ================================================
+
+function createPhysics() {
+
+    physics = new PhysicsWorld(THREE, {
+        gravity: -9.81,
+        iterations: 8,
+        substeps: 3,
+        groundY: -1000
+    });
+
+    // Etagen als statische Kollisionsflächen
+    for (let floor = 0; floor < FLOOR_COUNT; floor++) {
+
+        const y = floor * FLOOR_HEIGHT;
+
+        const collider = new THREE.Mesh(
+            new THREE.BoxGeometry(
+                ROOM_WIDTH,
+                0.6,
+                ROOM_DEPTH
+            ),
+            new THREE.MeshBasicMaterial({
+                visible: false
+            })
+        );
+
+        collider.position.set(0, y, 0);
+        collider.updateMatrixWorld(true);
+
+        physics.addStatic(collider);
+
+        // Collider-Referenz behalten
+        scene.add(collider);
+    }
+
+    // Wand-Collider
+    const wallColliders = [
+        {
+            x: 0,
+            y: FLOOR_HEIGHT * (FLOOR_COUNT - 1) + WALL_HEIGHT / 2,
+            z: -ROOM_DEPTH / 2,
+            sx: ROOM_WIDTH,
+            sy: WALL_HEIGHT,
+            sz: 0.5
+        },
+        {
+            x: 0,
+            y: FLOOR_HEIGHT * (FLOOR_COUNT - 1) + WALL_HEIGHT / 2,
+            z: ROOM_DEPTH / 2,
+            sx: ROOM_WIDTH,
+            sy: WALL_HEIGHT,
+            sz: 0.5
+        },
+        {
+            x: -ROOM_WIDTH / 2,
+            y: FLOOR_HEIGHT * (FLOOR_COUNT - 1) + WALL_HEIGHT / 2,
+            z: 0,
+            sx: 0.5,
+            sy: WALL_HEIGHT,
+            sz: ROOM_DEPTH
+        },
+        {
+            x: ROOM_WIDTH / 2,
+            y: FLOOR_HEIGHT * (FLOOR_COUNT - 1) + WALL_HEIGHT / 2,
+            z: 0,
+            sx: 0.5,
+            sy: WALL_HEIGHT,
+            sz: ROOM_DEPTH
+        }
+    ];
+
+    for (const wall of wallColliders) {
+
+        const collider = new THREE.Mesh(
+            new THREE.BoxGeometry(
+                wall.sx,
+                wall.sy,
+                wall.sz
+            ),
+            new THREE.MeshBasicMaterial({
+                visible: false
+            })
+        );
+
+        collider.position.set(
+            wall.x,
+            wall.y,
+            wall.z
+        );
+
+        collider.updateMatrixWorld(true);
+
+        scene.add(collider);
+        physics.addStatic(collider);
+    }
+
+    // Münzen als Physikobjekte
+    for (const coin of coins) {
+
+        const body = physics.add(coin, {
+            mass: 1,
+            radius: 0.65,
+            restitution: 0.25,
+            friction: 0.7,
+            linearDamping: 0.04,
+            angularDamping: 0.1
+        });
+
+        body.velocity.set(
+            (Math.random() - 0.5) * 0.5,
+            0,
+            (Math.random() - 0.5) * 0.5
+        );
+    }
+}
+
+// ================================================
+// SPIEL STARTEN
+// ================================================
+
 export function startGame() {
-    if (!renderer) return;
 
-    renderer.domElement.requestPointerLock();
+    if (gameStarted) return;
+
+    const canvas = renderer.domElement;
+
+    canvas.requestPointerLock();
+
+    gameStarted = true;
+
+    const menu = document.getElementById("menu");
+
+    if (menu) {
+        menu.style.display = "none";
+    }
 }
 
-// SPIELERBEWEGUNG
-function updatePlayer(dt) {
-    if (!playing) return;
+// ================================================
+// MAUS
+// ================================================
+
+function onMouseMove(event) {
+
+    if (!gameStarted) return;
+
+    if (document.pointerLockElement !== renderer.domElement) {
+        return;
+    }
+
+    const sensitivity = 0.002;
+
+    yaw -= event.movementX * sensitivity;
+    pitch -= event.movementY * sensitivity;
+
+    pitch = Math.max(
+        -Math.PI / 2 + 0.01,
+        Math.min(Math.PI / 2 - 0.01, pitch)
+    );
+
+    camera.rotation.order = "YXZ";
+    camera.rotation.set(
+        pitch,
+        yaw,
+        0
+    );
+}
+
+// ================================================
+// MENÜ BEI ESC
+// ================================================
+
+function onPointerLockChange() {
+
+    if (document.pointerLockElement !== renderer.domElement) {
+
+        gameStarted = false;
+
+        const menu = document.getElementById("menu");
+
+        if (menu) {
+            menu.style.display = "flex";
+        }
+    }
+}
+
+// ================================================
+// SPIELER
+// ================================================
+
+function updatePlayer(deltaTime) {
+
+    if (!gameStarted) return;
 
     const forward = new THREE.Vector3(
-        -Math.sin(yaw), 0, -Math.cos(yaw)
+        -Math.sin(yaw),
+        0,
+        -Math.cos(yaw)
     );
 
     const right = new THREE.Vector3(
-        Math.cos(yaw), 0, -Math.sin(yaw)
+        Math.cos(yaw),
+        0,
+        -Math.sin(yaw)
     );
 
     const movement = new THREE.Vector3();
 
-    if (keys.KeyW) movement.add(forward);
-    if (keys.KeyS) movement.sub(forward);
-    if (keys.KeyA) movement.sub(right);
-    if (keys.KeyD) movement.add(right);
+    if (keys["KeyW"]) movement.add(forward);
+    if (keys["KeyS"]) movement.sub(forward);
+    if (keys["KeyD"]) movement.add(right);
+    if (keys["KeyA"]) movement.sub(right);
 
     if (movement.lengthSq() > 0) {
-        movement.normalize().multiplyScalar(PLAYER_SPEED * dt);
+        movement.normalize();
+
+        playerPosition.addScaledVector(
+            movement,
+            PLAYER_SPEED * deltaTime
+        );
     }
 
-    const nextX = camera.position.x + movement.x;
-    const nextZ = camera.position.z + movement.z;
+    const limitX = ROOM_WIDTH / 2 - 1;
+    const limitZ = ROOM_DEPTH / 2 - 1;
 
-    if (Math.abs(nextX) < WIDTH / 2 - 3) {
-        camera.position.x = nextX;
+    playerPosition.x = THREE.MathUtils.clamp(
+        playerPosition.x,
+        -limitX,
+        limitX
+    );
+
+    playerPosition.z = THREE.MathUtils.clamp(
+        playerPosition.z,
+        -limitZ,
+        limitZ
+    );
+
+    camera.position.copy(playerPosition);
+}
+
+// ================================================
+// FENSTERGRÖSSE
+// ================================================
+
+function onResize() {
+
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+}
+
+// ================================================
+// HAUPTSCHLEIFE
+// ================================================
+
+function animate() {
+
+    animationFrame = requestAnimationFrame(animate);
+
+    const deltaTime = Math.min(
+        clock.getDelta(),
+        0.05
+    );
+
+    updatePlayer(deltaTime);
+
+    if (physics) {
+        physics.update(deltaTime);
     }
 
-    if (Math.abs(nextZ) < DEPTH / 2 - 3) {
-        camera.position.z = nextZ;
-    }
-
-    camera.position.y = SPAWN_Y;
+    renderer.render(scene, camera);
 }
