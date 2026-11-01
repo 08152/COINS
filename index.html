@@ -6,6 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ONE MILLION COINS</title>
 
+<!-- Three.js Import-Zuordnung -->
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/": "https://cdn.jsdelivr.net/npm/three@0.180.0/"
+    }
+}
+</script>
+
 <style>
 * {
     margin: 0;
@@ -98,6 +108,8 @@ canvas {
 #status {
     color: #ffcc44;
     font-size: 14px;
+    max-width: 90%;
+    overflow-wrap: anywhere;
 }
 </style>
 </head>
@@ -106,38 +118,59 @@ canvas {
 
 <div id="menu">
     <h1>ONE MILLION COINS</h1>
+
     <p>Ein riesiger Betonbunker voller Goldmünzen.</p>
-    <button id="start" disabled>SPIEL WIRD GELADEN ...</button>
+
+    <button id="start" disabled>
+        SPIEL WIRD GELADEN ...
+    </button>
+
     <p>WASD · Maus · ESC zum Pausieren</p>
+
     <div id="status">Lade Spiel...</div>
 </div>
 
 <div id="crosshair"></div>
-<div id="hint">WASD – Bewegen · Maus – Umschauen · ESC – Menü</div>
+
+<div id="hint">
+    WASD – Bewegen · Maus – Umschauen · ESC – Menü
+</div>
 
 <script type="module">
+
 const startButton = document.getElementById("start");
 const statusText = document.getElementById("status");
 
 try {
+
     const game = await import("./game.js");
 
     await game.initGame();
 
     startButton.disabled = false;
     startButton.textContent = "SPIELEN";
+
     statusText.textContent = "Bereit!";
 
     startButton.addEventListener("click", () => {
+
         game.startGame();
+
     });
 
 } catch (error) {
-    console.error(error);
+
+    console.error("SPIELFEHLER:", error);
+
     startButton.textContent = "FEHLER";
-    statusText.textContent = error.message;
+
+    statusText.textContent =
+        error.message || "Unbekannter Fehler";
+
     statusText.style.color = "#ff7777";
+
 }
+
 </script>
 
 </body>
