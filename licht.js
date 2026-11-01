@@ -1,33 +1,42 @@
-// licht.js
-// ONE MILLION COINS – dezente natürliche Sichtbarkeit
-// Keine Lampen, keine Lichtquellen und keine künstliche Beleuchtung.
-// Die Materialien bleiben auch ohne Three.js-Lichter sichtbar.
 
-export function applyLighting(scene) {
+// ================================================
+// ONE MILLION COINS
+// LICHT.JS
+// Keine künstlichen Lichtquellen
+// ================================================
+
+export function applyLighting(THREE, scene) {
+
     scene.background = new THREE.Color(0x777777);
-    scene.fog = new THREE.Fog(0x777777, 35, 180);
 
-    // Keine Lichtquellen hinzufügen.
-    // MeshBasicMaterial muss für die Betonflächen verwendet werden,
-    // damit sie auch ohne Beleuchtung sichtbar bleiben.
+    scene.fog = new THREE.Fog(
+        0x777777,
+        35,
+        180
+    );
 }
 
-export function createConcreteMaterial(texture) {
+// Beton
+export function createConcreteMaterial(THREE, texture) {
+
     return new THREE.MeshBasicMaterial({
         map: texture,
-        color: 0x999999,
-        roughness: 1
+        color: 0x999999
     });
 }
 
-export function createFloorMaterial(texture) {
+// Boden
+export function createFloorMaterial(THREE, texture) {
+
     return new THREE.MeshBasicMaterial({
         map: texture,
         color: 0x777777
     });
 }
 
-export function createDarkConcreteMaterial(texture) {
+// Dunkler Beton
+export function createDarkConcreteMaterial(THREE, texture) {
+
     return new THREE.MeshBasicMaterial({
         map: texture,
         color: 0x555555
