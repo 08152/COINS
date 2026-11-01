@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ONE MILLION COINS</title>
 
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+        }
+    }
+    </script>
+
     <style>
         * {
             margin: 0;
@@ -22,54 +30,93 @@
         }
 
         canvas {
+            position: fixed;
+            inset: 0;
             display: block;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
         }
 
         #menu {
             position: fixed;
             inset: 0;
-            z-index: 10;
+            z-index: 1000;
+
             display: flex;
             align-items: center;
             justify-content: center;
             flex-direction: column;
-            gap: 20px;
-            background: rgba(0,0,0,0.88);
+            gap: 22px;
+
+            background: rgba(0, 0, 0, 0.88);
             color: white;
             text-align: center;
+
+            pointer-events: auto;
         }
 
         #menu h1 {
             font-size: clamp(35px, 7vw, 75px);
             letter-spacing: 5px;
+            font-weight: 900;
         }
 
         #menu p {
             color: #bbb;
+            font-size: 15px;
         }
 
         #start {
-            padding: 17px 55px;
-            border: 2px solid #d6a900;
-            background: #b88700;
+            position: relative;
+            z-index: 1001;
+
+            padding: 18px 60px;
+
+            border: 2px solid #e5b500;
+            background: linear-gradient(
+                135deg,
+                #d9a500,
+                #9b7100
+            );
+
             color: white;
-            font-size: 20px;
+            font-size: 21px;
+            font-weight: bold;
+
             cursor: pointer;
+            pointer-events: auto;
+            transition: 0.2s;
         }
 
         #start:hover {
-            background: #e0ad00;
+            background: linear-gradient(
+                135deg,
+                #ffcc22,
+                #bd8d00
+            );
+
+            transform: scale(1.06);
+        }
+
+        #start:active {
+            transform: scale(0.97);
         }
 
         #crosshair {
             position: fixed;
             left: 50%;
             top: 50%;
+
             width: 5px;
             height: 5px;
+
             border-radius: 50%;
             background: white;
+
             transform: translate(-50%, -50%);
+
+            z-index: 5;
             pointer-events: none;
         }
 
@@ -77,34 +124,54 @@
             position: fixed;
             bottom: 20px;
             left: 50%;
+
             transform: translateX(-50%);
+
             color: white;
             font-size: 13px;
-            pointer-events: none;
+
             text-shadow: 0 2px 5px black;
+
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        #error {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ff7777;
+            font-size: 13px;
+            z-index: 2000;
+            max-width: 90%;
+            text-align: center;
+            pointer-events: none;
         }
     </style>
-
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
-        }
-    }
-    </script>
 </head>
 
 <body>
 
     <div id="menu">
         <h1>ONE MILLION COINS</h1>
-        <p>Ein riesiger Betonbunker voller Goldmünzen.</p>
-        <button id="start">SPIELEN</button>
+
+        <p>Ein riesiger Betonbunker voller glänzender Goldmünzen.</p>
+
+        <button id="start" type="button">
+            SPIELEN
+        </button>
+
         <p>WASD · Maus · ESC zum Pausieren</p>
     </div>
 
     <div id="crosshair"></div>
-    <div id="hint">WASD – Bewegen · Maus – Umschauen · ESC – Menü</div>
+
+    <div id="hint">
+        WASD – Bewegen · Maus – Umschauen · ESC – Menü
+    </div>
+
+    <div id="error"></div>
 
     <script type="module" src="./game.js"></script>
 
