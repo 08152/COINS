@@ -2,7 +2,6 @@
 // ================================================
 // ONE MILLION COINS
 // LICHT.JS
-// Keine künstlichen Lichtquellen
 // ================================================
 
 export function applyLighting(THREE, scene) {
@@ -16,7 +15,6 @@ export function applyLighting(THREE, scene) {
     );
 }
 
-// Beton
 export function createConcreteMaterial(THREE, texture) {
 
     return new THREE.MeshBasicMaterial({
@@ -25,7 +23,6 @@ export function createConcreteMaterial(THREE, texture) {
     });
 }
 
-// Boden
 export function createFloorMaterial(THREE, texture) {
 
     return new THREE.MeshBasicMaterial({
@@ -34,7 +31,6 @@ export function createFloorMaterial(THREE, texture) {
     });
 }
 
-// Dunkler Beton
 export function createDarkConcreteMaterial(THREE, texture) {
 
     return new THREE.MeshBasicMaterial({
