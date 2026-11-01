@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bunker – First Person</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    background: #111;
+    font-family: Arial, sans-serif;
+}
+
+canvas {
+    display: block;
+}
+
+#crosshair {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border: 1px solid white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+#overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 10;
+    text-align: center;
+}
+
+#overlay h1 {
+    font-size: 48px;
+    letter-spacing: 7px;
+    margin-bottom: 20px;
+}
+
+#overlay p {
+    color: #aaa;
+    margin-bottom: 25px;
+}
+
+#overlay button {
+    padding: 16px 45px;
+    background: #a58a55;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+#overlay button:hover {
+    background: #c5a66b;
+}
+
+#info {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    color: white;
+    font-size: 13px;
+    text-shadow: 0 2px 4px black;
+    pointer-events: none;
+}
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+  }
+}
+</script>
+</head>
+
+<body>
+
+<div id="overlay">
+    <h1>THE BUNKER</h1>
+    <p>Du befindest dich in einem riesigen unterirdischen Bunker.</p>
+    <button id="start">BETRETEN</button>
+    <br>
+    <p>WASD – Bewegen | Maus – Umschauen | ESC – Pause</p>
+</div>
+
+<div id="crosshair"></div>
+
+<div id="info">
+    BUNKER SECTOR 01<br>
+    STATUS: OPERATIONAL
+</div>
+
+<script type="module" src="./bunker.js"></script>
+
+</body>
+</html>
